@@ -60,31 +60,43 @@ class _OnlineMeasure:
     def __init__(self):
         self.online = 0
         self.offline = 0
+        self.lookaside = 0
+        self.lookaside_online = 0
+        self.lookaside_offline = 0
         self.specfiles_online = set()
         self.specfiles_offline = set()
         self.specfiles = set()
         self.sources = set()
 
-    def add_online(self, specfile, source):
+    def add_online(self, specfile, source, lookaside):
         self.online += 1
         self.specfiles_online.add(specfile)
-        self._add_all(specfile, source)
+        if lookaside:
+            self.lookaside_online += 1
+        self._add_all(specfile, source, lookaside)
 
-    def add_offline(self, specfile, source):
+    def add_offline(self, specfile, source, lookaside):
         self.offline += 1
         self.specfiles_offline.add(specfile)
-        self._add_all(specfile, source)
+        if lookaside:
+            self.lookaside_offline += 1
+        self._add_all(specfile, source, lookaside)
 
-    def _add_all(self, specfile, source):
+    def _add_all(self, specfile, source, lookaside):
         self.specfiles.add(specfile)
         self.sources.add(source)
+        if lookaside:
+            self.lookaside += 1
 
     @property
     def total(self):
         return self.online + self.offline
 
     def __str__(self):
-        return f"{self.online}/{self.offline}/{self.total} (online/offline/total)"
+        files = f"{self.online}/{self.offline}/{self.total} (online/offline/total, SourceN files)"
+        specfiles = f"{len(self.specfiles_online)}/{len(self.specfiles_offline)}/{len(self.specfiles)} (specfiles referencing online/offline/any such source(s))"
+        lookaside = f"{self.lookaside_online}/{self.lookaside_offline}/{self.lookaside} (lookaside online/offline/all)"
+        return f"{files} || {specfiles} || {lookaside}"
 
 
 def _main():
@@ -117,6 +129,7 @@ def _main():
 
         for source in sources:
             value = source["tag_value"]
+            lookaside = source["in_lookaside"]
             stats = source_others
             if _is_archive(value):
                 stats = source_archives
@@ -126,11 +139,11 @@ def _main():
                 stats = source_textfiles
 
             if source["tag_type"] == "url":
-                stats.add_online(spec, value)
-                source_files.add_online(spec, value)
+                stats.add_online(spec, value, lookaside)
+                source_files.add_online(spec, value, lookaside)
             else:
-                stats.add_offline(spec, value)
-                source_files.add_offline(spec, value)
+                stats.add_offline(spec, value, lookaside)
+                source_files.add_offline(spec, value, lookaside)
 
     specfiles_with_sources = set()
     all_measures = [source_archives, source_binaryfiles, source_textfiles, source_others]
@@ -150,9 +163,8 @@ def _main():
     print(f"source_files:               {source_files}")
     print(f"source_archives:            {source_archives}")
     print(f"source_textfiles:           {source_textfiles}")
+    print(f"source_binaryfiles:         {source_binaryfiles}")
     print(f"source_others:              {source_others}")
-    print(f"online sources in:          {len(specfiles_with_online_sources)} spec files")
-    print(f"offline sources in:         {len(specfiles_with_offline_sources)} spec files")
     print(f"online only sources in:     {len(specfiles_online_only)} spec files")
     print(f"offline only sources in:    {len(specfiles_offline_only)} spec files")
     print(f"source without category in: {len(source_others.specfiles)}")
