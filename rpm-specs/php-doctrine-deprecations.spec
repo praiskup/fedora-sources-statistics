@@ -1,0 +1,204 @@
+# remirepo/fedora spec file for php-doctrine-deprecations
+#
+# Copyright (c) 2021-2024 Remi Collet
+# License: CC-BY-SA-4.0
+# http://creativecommons.org/licenses/by-sa/4.0/
+#
+# Please, preserve the changelog entries
+#
+
+%bcond_without       tests
+
+%global gh_commit    dfbaa3c2d2e9a9df1118213f3b8b0c597bb99fab
+%global gh_short     %(c=%{gh_commit}; echo ${c:0:7})
+%global gh_owner     doctrine
+%global gh_project   deprecations
+# packagist
+%global pk_vendor    %{gh_owner}
+%global pk_project   %{gh_project}
+# Namespace
+%global ns_vendor    Doctrine
+%global ns_project   Deprecations
+
+Name:           php-%{pk_vendor}-%{pk_project}
+Version:        1.1.3
+Release:        2%{?dist}
+Summary:        A small layer on top of triggeFr_error or PSR-3 logging
+
+License:        MIT
+URL:            https://github.com/%{gh_owner}/%{gh_project}
+Source0:        %{name}-%{version}-%{gh_short}.tgz
+Source1:        makesrc.sh
+
+BuildArch:      noarch
+BuildRequires:  php(language) >= 7.1
+BuildRequires:  php-fedora-autoloader-devel
+%if %{with tests}
+# From composer.json
+#    "require-dev": {
+#        "doctrine/coding-standard": "^9",
+#        "phpstan/phpstan": "1.4.10 || 1.10.15",
+#        "phpstan/phpstan-phpunit": "^1.0",
+#        "phpunit/phpunit": "^7.5 || ^8.5 || ^9.5",
+#        "psalm/plugin-phpunit": "0.18.4",
+#        "psr/log": "^1 || ^2 || ^3",
+#        "vimeo/psalm": "4.30.0 || 5.12.0"
+BuildRequires: (php-composer(psr/log) >= 1.0   with php-composer(psr/log) < 4)
+BuildRequires:  phpunit9 >= 9.5
+%endif
+
+# From composer.json
+#    "require": {
+#        "php": "^7.1 || ^8.0",
+#    "suggest": {
+#        "psr/log": "Allows logging deprecations via PSR-3 logger implementation"
+
+Requires:       php(language) >= 7.1
+Requires:      (php-composer(psr/log) >= 1.0   with php-composer(psr/log) < 4)
+# From phpcompatinfo report for version 0.5.3
+# Only core and standard
+
+# Autoloader
+Requires:       php-composer(fedora/autoloader)
+
+Provides:       php-composer(%{pk_vendor}/%{pk_project}) = %{version}
+
+
+%description
+A small (side-effect free by default) layer on top of
+trigger_error(E_USER_DEPRECATED) or PSR-3 logging.
+
+* no side-effects by default, making it a perfect fit for libraries
+  that don't know how the error handler works they operate under
+* options to avoid having to rely on error handlers global state by
+  using PSR-3 logging
+* deduplicate deprecation messages to avoid excessive triggering and
+  reduce overhead
+
+We recommend to collect Deprecations using a PSR logger instead of
+relying on the global error handler.
+
+Autoloader: %{_datadir}/php/%{ns_vendor}/%{ns_project}/autoload.php
+
+
+%prep
+%setup -q -n %{gh_project}-%{gh_commit}
+
+
+%build
+: Generate a simple autoloader
+%{_bindir}/phpab \
+    --output lib/%{ns_vendor}/%{ns_project}/autoload.php \
+    --template fedora \
+    lib/%{ns_vendor}
+
+cat << 'EOF' | tee -a lib/%{ns_vendor}/%{ns_project}/autoload.php
+
+\Fedora\Autoloader\Dependencies::required([
+    [
+        '%{_datadir}/php/Psr/Log3/autoload.php',
+        '%{_datadir}/php/Psr/Log2/autoload.php',
+        '%{_datadir}/php/Psr/Log/autoload.php',
+    ],
+]);
+EOF
+
+
+%install
+mkdir -p                              %{buildroot}%{_datadir}/php/%{ns_vendor}
+cp -pr lib/%{ns_vendor}/%{ns_project} %{buildroot}%{_datadir}/php/%{ns_vendor}/%{ns_project}
+
+
+%check
+%if %{with tests}
+: Generate autoloader
+mkdir vendor
+%{_bindir}/phpab \
+    --output vendor/autoload.php \
+    --template fedora \
+    test_fixtures/src \
+    test_fixtures/vendor/doctrine/foo
+
+cat << 'EOF' | tee -a vendor/autoload.php
+\Fedora\Autoloader\Dependencies::required([
+    '%{buildroot}%{_datadir}/php/%{ns_vendor}/%{ns_project}/autoload.php',
+]);
+EOF
+
+ret=0
+for cmd in php php81 php82 php83; do
+  if which $cmd; then
+    $cmd  -d auto_prepend_file=vendor/autoload.php \
+      %{_bindir}/phpunit9 \
+        --filter '^((?!(testDeprecationTrackByEnv)).)*$' \
+        --verbose || ret=1
+  fi
+done
+
+exit $ret
+%else
+: Test suite disabled
+%endif
+
+
+%files
+%license LICENSE
+%doc *.md
+%doc composer.json
+%{_datadir}/php/%{ns_vendor}/%{ns_project}/
+
+
+%changelog
+* Fri Jul 19 2024 Fedora Release Engineering <releng@fedoraproject.org> - 1.1.3-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_41_Mass_Rebuild
+
+* Wed Jan 31 2024 Remi Collet <remi@remirepo.net> - 1.1.3-1
+- update to 1.1.3 (no change)
+- Fix FTBFS #2261475
+
+* Thu Jan 25 2024 Fedora Release Engineering <releng@fedoraproject.org> - 1.1.2-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_40_Mass_Rebuild
+
+* Sun Jan 21 2024 Fedora Release Engineering <releng@fedoraproject.org> - 1.1.2-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_40_Mass_Rebuild
+
+* Thu Sep 28 2023 Remi Collet <remi@remirepo.net> - 1.1.2-1
+- update to 1.1.2
+
+* Fri Jul 21 2023 Fedora Release Engineering <releng@fedoraproject.org> - 1.1.1-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_39_Mass_Rebuild
+
+* Mon Jun  5 2023 Remi Collet <remi@remirepo.net> - 1.1.1-1
+- update to 1.1.1
+
+* Tue May 30 2023 Remi Collet <remi@remirepo.net> - 1.1.0-1
+- update to 1.1.0
+
+* Thu Apr 20 2023 Remi Collet <remi@remirepo.net> - 1.0.0-4
+- add upstream patch for test suite with PHP 8.2 #2171642
+
+* Fri Jan 20 2023 Fedora Release Engineering <releng@fedoraproject.org> - 1.0.0-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_38_Mass_Rebuild
+
+* Fri Jul 22 2022 Fedora Release Engineering <releng@fedoraproject.org> - 1.0.0-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_37_Mass_Rebuild
+
+* Tue May  3 2022 Remi Collet <remi@remirepo.net> - 1.0.0-1
+- update to 1.0.0
+- allow psr/log 2 and 3
+- drop patch merged upstream
+
+* Fri Jan 21 2022 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.3-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
+
+* Tue Jul 27 2021 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.3-3
+- Second attempt - Rebuilt for
+  https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
+
+* Wed Mar 31 2021 Remi Collet <remi@remirepo.net> - 0.5.3-2
+- add LICENSE file copy/pasted from other doctrine project,
+  and from https://github.com/doctrine/deprecations/pull/27
+
+* Tue Mar 30 2021 Remi Collet <remi@remirepo.net> - 0.5.3-1
+- initial package
+- open https://github.com/doctrine/deprecations/issues/26 missing License

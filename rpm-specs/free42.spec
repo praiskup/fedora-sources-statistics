@@ -1,0 +1,101 @@
+Name:           free42
+Epoch:          1
+Version:        3.1.8
+Release:        %autorelease
+License:        GPL-2.0-only AND BSD-3-Clause
+Summary:        42S Calculator Simulator
+URL:            https://www.thomasokken.com/free42/
+Source:         https://www.thomasokken.com/free42/upstream/free42-nologo-%{version}.tgz
+Patch0:         free42-makefile.patch
+Patch1:         free42-intel-lib-arches.patch
+
+BuildRequires:  gcc-c++
+BuildRequires:  gtk3-devel
+BuildRequires:  alsa-lib-devel
+BuildRequires:  ImageMagick
+BuildRequires:  desktop-file-utils
+BuildRequires:  libappstream-glib
+BuildRequires:  make
+
+Provides:       bundled(IntelRDFPMathLib) = 2.1
+
+# https://fedoraproject.org/wiki/Changes/EncourageI686LeafRemoval
+ExcludeArch:    %{ix86}
+
+%description
+Free42 is a complete re-implementation of the 42S calculator and the
+82240 printer.  It was written from scratch, without using any HP code.
+
+%prep
+%autosetup -p1 -n free42-nologo-%{version}
+
+%build
+cd gtk
+# inteldecimal F128_CFLAGS uses this instead of CFLAGS
+export CFLAGS_OPT="%{optflags}"
+# make fails when using %{?_smp_mflags}
+make BCD_MATH=1 AUDIO_ALSA=1
+
+convert icon-48x48.xpm icon-48x48.png
+sed -i -e 's/IvoryBlack/#231F20/' icon-128x128.xpm
+convert icon-128x128.xpm icon-128x128.png
+
+cat <<EOF >free42.desktop
+[Desktop Entry]
+Name=Free42
+GenericName=Free42 calculator simulator
+Exec=free42dec
+Icon=free42
+Terminal=false
+Type=Application
+Categories=Utility;Calculator;
+EOF
+
+cat <<EOF >free42.appdata.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+    <id>com.thomasokken.free42</id>
+    <name>Free42</name>
+    <summary>42S Calculator Simulator</summary>
+    <metadata_license>FSFAP</metadata_license>
+    <project_license>GPL-2.0</project_license>
+    <description>
+        <p>
+            Free42 is a complete re-implementation of the 42S calculator and the
+            82240 printer.  It was written from scratch, without using any HP code.
+        </p>
+    </description>
+    <launchable type="desktop-id">free42.desktop</launchable>
+    <provides>
+        <binary>free42dec</binary>
+    </provides>
+    <content_rating type="oars-1.1"/>
+    <developer_name>Thomas Okken</developer_name>
+    <releases>
+        <release version="%{version}" date="%(date +%F -r %{SOURCE0})" />
+    </releases>
+    <url type="homepage">https://www.thomasokken.com/free42/</url>
+</component>
+EOF
+
+%install
+install -D -p -m 755 gtk/free42dec %{buildroot}%{_bindir}/free42dec
+install -D -p -m 644 gtk/icon-48x48.png %{buildroot}%{_datadir}/icons/hicolor/48x48/apps/%{name}.png
+install -D -p -m 644 gtk/icon-128x128.png %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/%{name}.png
+install -D -p -m 644 gtk/free42.desktop %{buildroot}%{_datadir}/applications/%{name}.desktop
+install -D -p -m 644 gtk/free42.appdata.xml %{buildroot}%{_metainfodir}/%{name}.appdata.xml
+
+%check
+desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
+appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/%{name}.appdata.xml
+
+%files
+%doc CREDITS HISTORY README
+%license COPYING gtk/IntelRDFPMathLib20U1/eula.txt
+%{_bindir}/free42dec
+%{_datadir}/applications/%{name}.desktop
+%{_datadir}/icons/hicolor/*/*/%{name}.png
+%{_metainfodir}/%{name}.appdata.xml
+
+%changelog
+%autochangelog
