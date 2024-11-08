@@ -1,0 +1,9 @@
+be99705e4cfe1fe841189bb37ae87e16  changelog.dtd
+cc7db428a73896c052eeeb516ab8c873  changelog-xml-schema.xdr
+375caa2b7c94ed4d49ed2ce6d8fea1d8  ChangeLog.xsd
+f5af372c18e9199955d87f9da009b697  cl2html-ciaglia.xslt
+1b6c38d10a73eb1667550d2b56bcf3b9  cl2html_rss-karaguezian.xslt
+de54d6ce72570c845ef5a0dcc8bf9399  cl2html.xslt
+f7d7cf88b314c0cb1a16c8c93d1c8e54  cvs2cl_ruether.xslt
+6c521f9e2b2ae5fbcee63b3c2f47d607  filter-cvs2cl.xslt
+07ce09415c10753ba262923fde6e0c18  cvs2cl.pl

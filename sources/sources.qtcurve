@@ -1,0 +1,3 @@
+SHA512 (qtcurve-1.9.1.tar.gz) = 27bec62ce0d8c4b0fcfebaf0ee91cea9dcdd97c0ef886175c296909ee790d983ff0661570fd0061851b8ee2ee663cbfac967355375e1b6f02757fdefeac69dd7
+SHA512 (0037-utils-gtkprops-Remove-unnecessary-constexpr-this-is-.patch) = 1358bb59c176df0cb3618d67d534e2dbc6c094d23b1859f33e367457f33e7bd02b1bb7558c2bc7492d8996697640e6ac030c404d48899b1dfd13af639a7f6c79
+SHA512 (0066-Fix-build-with-Qt-5.15-missing-QPainterPath-include.patch) = 8640cd89ef3446ea3b91560f7b725b9e06bb8d9cdbe3bf7e17ee5779d45f4dcbd43ce6e334af40c9075403d3833b0d162b83ecaba513ddcdb9930491ba80d064
